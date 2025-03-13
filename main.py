@@ -66,9 +66,7 @@ def log(loginfo:str):
 
 #MQTT Details
 
-MACHINE_ID = "_gate_control"
-DEVICE_ID = "pico_w"
-CLIENT_ID = str(DEVICE_ID)+str((MACHINE_ID))#[14:-1])
+
 SUBSCRIBE_TOPIC = str(CLIENT_ID)+"/Command"
 PUBLISH_TOPIC1 = str(CLIENT_ID)+"/Command"
 PUBLISH_TOPIC2 = str(CLIENT_ID)+"/Status"
@@ -146,26 +144,34 @@ async def main(client):
             CMDstop(0)
         await client.publish((PUBLISH_TOPIC1 +"/stop"), f"0", qos=1)
         
-        if openSTAT:
+        
+        if openSTAT() == True:
+            print("openSTAT 1", openSTAT())
             await client.publish((PUBLISH_TOPIC2 +"/open"), f"1", qos=1)
         else:
+            print("openSTAT 0", openSTAT())
             await client.publish((PUBLISH_TOPIC2 +"/open"), f"0", qos=1)
         
-        if closeSTAT:
+        if closeSTAT() == True:
+            print("closeSTAT 1", closeSTAT())
             await client.publish((PUBLISH_TOPIC2 +"/close"), f"1", qos=1)
         else:
+            print("closeSTAT 0", closeSTAT())
             await client.publish((PUBLISH_TOPIC2 +"/close"), f"0", qos=1)
 
-        if objDTC:
+        if objDTC() == True:
+            print("objDTC 1", objDTC())
             await client.publish((PUBLISH_TOPIC2 +"/objDTC"), f"1", qos=1)
         else:
+            print("objDTC 0", objDTC())
             await client.publish((PUBLISH_TOPIC2 +"/objDTC"), f"0", qos=1)
 
 # Define configuration
 config['subs_cb'] = sub_cb
 config['wifi_coro'] = wifi_han
-config['connect_coro'] = conn_han
 config['clean'] = False
+config['will'] = ('result', 'Goodbye cruel world!', False, 0)
+config['keepalive'] = 120
 
 # Set up client
 MQTTClient.DEBUG = False  # Optional
