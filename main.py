@@ -1,3 +1,4 @@
+
 # clean.py Test of asynchronous mqtt client with clean session.
 # (C) Copyright Peter Hinch 2017-2019.
 # Released under the MIT licence.
@@ -65,7 +66,7 @@ def log(loginfo:str):
 
 
 #MQTT Details
-
+CLIENT_ID = config["client_id"]
 
 SUBSCRIBE_TOPIC = str(CLIENT_ID)+"/Command"
 PUBLISH_TOPIC1 = str(CLIENT_ID)+"/Command"
