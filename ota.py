@@ -3,6 +3,10 @@ import os
 import json
 import machine
 from time import sleep
+from log import logger
+
+def dprint(*args):
+        logger.debug(*args)
 
 class OTAUpdater:
     """ This class handles OTA updates. It checks for updates (using version number),
@@ -11,20 +15,20 @@ class OTAUpdater:
     def __init__(self, repo_url, *filenames):
         
         if "www.github.com" in repo_url :
-            print(f"Updating {repo_url} to raw.githubusercontent")
+            dprint(f"Updating {repo_url} to raw.githubusercontent")
             self.repo_url = repo_url.replace("www.github","raw.githubusercontent")
         elif "github.com" in repo_url:
-            print(f"Updating {repo_url} to raw.githubusercontent'")
+            dprint(f"Updating {repo_url} to raw.githubusercontent'")
             self.repo_url = repo_url.replace("github","raw.githubusercontent")            
         self.version_url = self.repo_url + 'version.json'
-        print(f"version url is: {self.version_url}")
+        dprint(f"version url is: {self.version_url}")
         self.filename_list = [filename for filename in filenames]
 
         # get the current version (stored in version.json)
         if 'version.json' in os.listdir():    
             with open('version.json') as f:
                 self.current_version = int(json.load(f)['version'])
-            print(f"Current device firmware version is '{self.current_version}'")
+            dprint(f"Current device firmware version is '{self.current_version}'")
 
         else:
             self.current_version = 0
@@ -50,13 +54,13 @@ class OTAUpdater:
 
             filename = filename.split("/")[1]
             if not prefix1 in os.listdir():
-                print('Directory not available')
-                print(prefix1)
+                dprint('Directory not available')
+                dprint(prefix1)
                 os.mkdir(prefix1)
-            #else: print('Directory available')
+            #else: dprint('Directory available')
                 
             os.chdir(prefix1)
-            print(filename)
+            dprint(filename)
             
         if count == 2:
             prefix1 = filename.split("/")[0]
@@ -65,13 +69,13 @@ class OTAUpdater:
             filename = filename.split("/")[2]
             os.chdir(prefix1)
             if not prefix2 in os.listdir():
-                print('Directory not available')
-                print(prefix2)
+                dprint('Directory not available')
+                dprint(prefix2)
                 os.mkdir(prefix2)
-            #else: print('Directory available')
+            #else: dprint('Directory available')
                 
             os.chdir(prefix2)
-            print(filename)
+            dprint(filename)
 
         if count == 3:
             prefix1 = filename.split("/")[0]
@@ -83,25 +87,25 @@ class OTAUpdater:
             filename = filename.split("/")[3]
             if not prefix3 in os.listdir():
                 #print('Directory not available')
-                print(prefix3)
+                dprint(prefix3)
                 os.mkdir(prefix3)
-            #else: print('Directory available')
+            #else: dprint('Directory available')
                 
             os.chdir(prefix3)
-            print(filename)
+            dprint(filename)
 
             
         
             
         response = urequests.get(self.firmware_url)
         if response.status_code == 200:
-            print(f'Fetched file {filename}, status: {response.status_code}')
+            dprint(f'Fetched file {filename}, status: {response.status_code}')
     
             # Save the fetched code to file (with prepended '_')
             new_code = response.text
             with open(f'_{filename}', 'w') as f:
                 f.write(new_code)
-            print(f'Saved as _{filename}')
+            dprint(f'Saved as _{filename}')
             #print(os.getcwd())
             #go back to root
             if not os.getcwd() == "/":
@@ -112,29 +116,29 @@ class OTAUpdater:
             return True
         
         elif response.status_code == 404:
-            print(f'Firmware not found - {self.firmware_url}.')
+            dprint(f'Firmware not found - {self.firmware_url}.')
             return False
 
     def check_for_updates(self):
         """ Check if updates are available. (Note: GitHub caches values for 5 min.)"""
         
-        print(f'Checking for latest version... on {self.version_url}')
+        dprint(f'Checking for latest version... on {self.version_url}')
         response = urequests.get(self.version_url)
         
         data = json.loads(response.text)
         
-        print(f"data is: {data}, url is: {self.version_url}")
-        print(f"data version is: {data['version']}")
+        dprint(f"data is: {data}, url is: {self.version_url}")
+        dprint(f"data version is: {data['version']}")
         # Turn list to dict using dictionary comprehension
         # my_dict = {data[i]: data[i + 1] for i in range(0, len(data), 2)}
         
         self.latest_version = int(data['version'])
-        print(f'latest version is: {self.latest_version}')
+        dprint(f'latest version is: {self.latest_version}')
         
         # compare versions
         newer_version_available = True if self.current_version < self.latest_version else False
         
-        print(f'Newer version available: {newer_version_available}')    
+        dprint(f'Newer version available: {newer_version_available}')    
         return newer_version_available
     
     def download_and_install_update_if_available(self):
@@ -173,7 +177,7 @@ class OTAUpdater:
                     
                 newfile = f"_{filename}"
                 os.rename(newfile, filename)
-                print(f'Renamed _{filename} to {filename}, overwriting existing file')
+                dprint(f'Renamed _{filename} to {filename}, overwriting existing file')
                 if not os.getcwd() == "/":
                 
                     os.chdir("/")
@@ -181,11 +185,11 @@ class OTAUpdater:
             # save the current version
             with open('version.json', 'w') as f:
                 json.dump({'version': self.latest_version}, f)
-            print('Update version from {self.current_version} to {self.latest_version}')
+            dprint('Update version from {self.current_version} to {self.latest_version}')
 
             # Restart the device to run the new code.
-            print('Restarting device...')
+            dprint('Restarting device...')
             sleep(0.3)
             machine.reset() 
         else:
-            print('No new updates available.')
+            dprint('No new updates available.')
