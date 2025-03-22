@@ -129,9 +129,9 @@ async def serve_client(reader, writer):
     
     
     try:
-        dprint("Client connected")
+        print("Client connected")
         request_line = await reader.readline()
-        dprint("Request:", request_line)
+        print("Request:", request_line)
         
         # We are not interested in HTTP request headers, skip them
         while await reader.readline() != b"\r\n":
@@ -139,7 +139,7 @@ async def serve_client(reader, writer):
         
         gc.collect()
         m = gc.mem_free()
-        dprint('mem free', m)
+        print('mem free', m)
         
         version = f"MicroPython Version: {sys.version}"
 
@@ -147,7 +147,7 @@ async def serve_client(reader, writer):
             with open(LOGFILENAME) as file:
                 data = file.read()
             heading = "Debug"
-            dprint('log demanded')
+            print('log demanded')
         elif '/err' in request_line.split()[1]:
             with open(ERRORLOGFILENAME) as file:
                 data = file.read()
@@ -233,7 +233,7 @@ async def get_ntp():
         with open(ERRORLOGFILENAME, 'a') as file:
             file.write(f"OSError while trying to set time: {str(e)}\n")        
         
-    dprint("machine time is:",(time.localtime()))
+    print("machine time is:",(time.localtime()))
 
 # If you connect with clean_session True, must re-subscribe (MQTT spec 3.1.2.4)
 async def conn_han(client):
@@ -249,55 +249,67 @@ def sub_cb(topic, msg, retained):
     global closeCMD
     global stopCMD
 
-    dprint(f'Topic: "{topic.decode()}" Message: "{msg.decode()}" Retained: {retained}')
+    dprint(f'Topic: "{topic.decode()}" Message: "{bool(int(msg.decode()))}" Retained: {retained}')
 
     
     if topic.decode() == SUBSCRIBE_TOPIC +"/open":
-        openCMD = int(msg.decode())
+        #print('open: ', bool(int(msg.decode())))
+        openCMD = bool(int(msg.decode()))
               
-    if topic.decode() == SUBSCRIBE_TOPIC +"/close":
-        closeCMD = int(msg.decode())
+    elif topic.decode() == SUBSCRIBE_TOPIC +"/stop":
+        #print('stop: ', bool(int(msg.decode())))
+        stopCMD = bool(int(msg.decode()))
+    
+    elif topic.decode() == SUBSCRIBE_TOPIC +"/close":
+        #print('close: ', bool(int(msg.decode())))
+        closeCMD = bool(int(msg.decode()))
         
-    if topic.decode() == SUBSCRIBE_TOPIC +"/stop":
-        stopCMD = int(msg.decode())
         
 async def comm(client):
+    
+    global openCMD
+    global closeCMD
+    global stopCMD
     
     oldValOpen = False
     oldValClose = False
     oldValObjDTC = False
     
+    
     while True:
+        asyncio.sleep(1)
         # If WiFi is down the following will pause for the duration.
-      
+          
         
         if openCMD and not closeCMD and not stopCMD:
             dprint('Open command received')
             CMDopen(1)
             asyncio.sleep(1)
-        else:
             CMDopen(0)
-        await client.publish((PUBLISH_TOPIC1 +"/open"), f"0", qos=1)
-        
-        
+            await client.publish((PUBLISH_TOPIC1 +"/open"), f"0", qos=1)
+            openCMD = False
+            asyncio.sleep(1)
+            
         if  closeCMD and not openCMD and not stopCMD:
             dprint('Close command received')
             CMDclose(1)
-            
-        else:
+            asyncio.sleep(1)
             CMDclose(0)
-        asyncio.sleep(1)
-        await client.publish((PUBLISH_TOPIC1 +"/close"), f"0", qos=1)
-        
+            await client.publish((PUBLISH_TOPIC1 +"/close"), f"0", qos=1)
+            closeCMD = False
+            asyncio.sleep(1)
+            
         if  stopCMD:
             dprint('Stop command received')
             CMDstop(1)
             asyncio.sleep(1)
-        else:
             CMDstop(0)
-        await client.publish((PUBLISH_TOPIC1 +"/stop"), f"0", qos=1)
+            await client.publish((PUBLISH_TOPIC1 +"/stop"), f"0", qos=1)
+            stopCMD = False
+            asyncio.sleep(1)
+            
         
-        
+        # Send status
         if openSTAT() and not oldValOpen:
             dprint("Gate is open")
             await client.publish((PUBLISH_TOPIC2 +"/open"), f"1", qos=1)
@@ -306,7 +318,6 @@ async def comm(client):
         elif not openSTAT() and oldValOpen:
             await client.publish((PUBLISH_TOPIC2 +"/open"), f"0", qos=1)
             oldValOpen = False
-         
     
     
         if closeSTAT() and not oldValClose:
@@ -329,7 +340,8 @@ async def comm(client):
             await client.publish((PUBLISH_TOPIC2 +"/objDTC"), f"0", qos=1)
             oldValObjDTC = False
 
-
+        await asyncio.sleep(0.5)
+        
 async def OTA():
     
     # Check for OTA updates
@@ -392,3 +404,4 @@ try:
 finally:
     client.close()  # Prevent LmacRxBlk:1 errors
     asyncio.new_event_loop() 
+
