@@ -139,8 +139,6 @@ async def serve_client(reader, writer):
         
         gc.collect()
         m = gc.mem_free()
-        print('mem free', m)
-        
         version = f"MicroPython Version: {sys.version}"
 
         if '/log' in request_line.split()[1]:
@@ -404,4 +402,3 @@ try:
 finally:
     client.close()  # Prevent LmacRxBlk:1 errors
     asyncio.new_event_loop() 
-

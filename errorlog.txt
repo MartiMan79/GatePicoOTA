@@ -1,0 +1,5 @@
+main loop error: name 'state' isn't defined
+serve_client error @ 09:41:28: memory allocation failed, allocating 28216 bytes
+serve_client error @ 09:41:28: memory allocation failed, allocating 28528 bytes
+serve_client error @ 09:41:28: memory allocation failed, allocating 28624 bytes
+serve_client error @ 09:41:28: memory allocation failed, allocating 28864 bytes
